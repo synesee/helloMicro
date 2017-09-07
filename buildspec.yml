@@ -1,0 +1,29 @@
+
+version: 0.2
+
+#$CODEBUILD_SRC_DIR is is a given env var
+
+env:
+  variables:
+    customenvkey: "mycustomenvvalue"
+phases:
+  install:
+    commands:
+      - echo "install command..."
+  pre_build:
+    commands:
+      - echo "pre-build commands..."
+      - "[[ -d ./src ]] || echo 'Missing src dir'"
+      - "[[ -d ./awsoptions ]] || echo 'Missing awsoptions dir'"
+      - "[[ -d ./package ]] || echo 'Missing package dir'"
+  build:
+    commands:
+      - echo "build command..."
+  post_build:
+    commands:
+      - zip -r ./package/src.zip ./src/*
+      - echo $(du -sh ./package/src.zip)
+artifacts:
+  files:
+    - ./package/*
+    - ./awsoptions/**/*
