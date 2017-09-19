@@ -14,16 +14,15 @@ phases:
     commands:
       - echo "pre-build commands..."
       - "[[ -d ./src ]] || echo 'Missing src dir'"
-      - "[[ -d ./awsoptions ]] || echo 'Missing awsoptions dir'"
+      - "[[ -d ./scaffolding ]] || echo 'Missing scaffolding dir'"
       - "[[ -d ./package ]] || echo 'Missing package dir'"
   build:
     commands:
       - echo "build command..."
   post_build:
     commands:
-      - zip -r ./package/src.zip ./src/*
-      - echo $(du -sh ./package/src.zip)
+      - cd src && zip -r ../package/src.zip * && cd ..
+      - cp -r ./scaffolding/* ./package/
 artifacts:
   files:
-    - ./package/*
-    - ./awsoptions/**/*
+    - ./package/**/*
