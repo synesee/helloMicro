@@ -22,8 +22,6 @@ phases:
   post_build:
     commands:
       - cd src && zip -r ../package/src.zip * && cd ..
-      - cp -r ./scaffolding/* ./package/
 artifacts:
   files:
     - ./package/*
-    - ./scaffolding/**/*
