@@ -21,8 +21,8 @@ phases:
       - echo "build command..."
   post_build:
     commands:
-      - zip -r ./package/src.zip ./src/*
-      - echo $(du -sh ./package/src.zip)
+      - cd src && zip -r ../package/src.zip * && cd ..
+      - cp -r ./scaffolding/* ./package/
 artifacts:
   files:
     - ./package/*
