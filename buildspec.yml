@@ -21,8 +21,6 @@ phases:
       - echo "build command..."
   post_build:
     commands:
-      - echo $(pwd)
-      - echo $(ls)
       - cd src && zip -r ../package/src.zip * && cd ..
       - cp -r ./scaffolding/* ./package/
 artifacts:
