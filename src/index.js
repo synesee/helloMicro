@@ -11,7 +11,7 @@ const EVENT_SNS = "sns";
 const EVENT_S3 = "s3";
 const EVENT_SES = "SES";
 const EVENT_DYNAMO_DB = "dynamoDB";
-
+//just a comment
 
 /*
  Base Lambda Template to show how to attach event to Data object and use Promise Series
