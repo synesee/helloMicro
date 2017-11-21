@@ -13,9 +13,6 @@ phases:
   pre_build:
     commands:
       - echo "pre-build commands..."
-      - "[[ -d ./src ]] || echo 'Missing src dir'"
-      - "[[ -d ./scaffolding ]] || echo 'Missing scaffolding dir'"
-      - "[[ -d ./package ]] || echo 'Missing package dir'"
   build:
     commands:
       - echo "build command..."
