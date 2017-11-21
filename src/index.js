@@ -21,15 +21,145 @@ const EVENT_DYNAMO_DB = "dynamoDB";
 
  */
 
+// ************* Main Handler - Entry Point ******************************
+exports.handler = function(event, context, callback) {
 
-function apigwParsedHandler() {
+    var inEvent = {};
+    inEvent.event = event;
+    console.log(JSON.stringify(inEvent));
+    inEvent = parseEvent(inEvent);
+
+    // We are wrapping in a promise so that we can capture the
+    // output from the called function and return it properly
+    Promise.resolve().then(() => {
+        if (inEvent && inEvent.hasOwnProperty(EVENT_TYPE)) {
+            switch (inEvent[EVENT_TYPE]) {
+                case EVENT_API_GW_PARSED:
+                    // apigwParsedHandler(inEvent);
+                    return run(apigwParsedHandler, inEvent);
+                    break;
+                case EVENT_API_GW_PROXY:
+                    // apigwProxyHandler(inEvent);
+                    return run(apigwProxyHandler, inEvent);
+                    break;
+                case EVENT_SNS :
+                    run(snsHandler, inEvent);
+                    break;
+                case EVENT_S3 :
+                    s3Handler(inEvent);
+                    break;
+                case EVENT_SES :
+                    sesHandler(inEvent);
+                    break;
+                case EVENT_DYNAMO_DB :
+                    dynamoDBHander(inEvent);
+                    break;
+                default :
+                    console.log("No Event Handler, Or Event Type Not Supported");
+//                    resolve();
+            }
+        }
+    }).then((result) => {
+        // default response
+        var responseBody = {
+            message: "Process finished successfully."
+        };
+
+        if (result && (typeof result === 'object')) {
+            // this is a response object that we need to stringify
+            responseBody = result;
+        } else if (result && result.length) {
+            // this is a string response
+            responseBody = {
+                message: result
+            };
+        }
+
+        var response = {
+            statusCode: 200,
+            headers: {
+                "Access-Control-Allow-Origin" : "*", // Required for CORS support to work
+                "Access-Control-Allow-Credentials" : true // Required for cookies, authorization headers with HTTPS
+            },
+            body: JSON.stringify(responseBody)
+        };
+
+        console.log("Exiting Promise Handler Function");
+        // return the results to caller (usually web request through api gateway)
+        return callback(null, response);
+    });
+
+    // should put in a .catch here and send a 500 if there is an error
+
+    console.log("Exiting Main Handler Function");
+
+}
+// ***************** End Main Handler Function ***********************
+
+// ***************** Begin Sub Handler Functions ***********************
+function *apigwParsedHandler() {
     console.log('apigwParsedHandler');
+    var calledEvent = event[EVENT_TYPE];
+    console.log('Passed In Event: ' + calledEvent);
+
+    var myparams = "Some Passed In Vals";
+
+    // Example series of fake async calls
+    try {
+        var result = yield getAsyncVal(101);
+        console.log( result );
+        var result2 = yield getAsyncVal(102);
+        console.log( result2 );
+        yield *someSubGen(myparams);
+        var result5 = yield getAsyncVal(105);
+        console.log( result5 );
+    }
+    catch (err) {
+        console.error( err );
+    }
+
+    // for now we will just always return something
+    var retJsonObj = {
+        ResponseType: "Default",
+        items: [
+            {
+                Hello: "World",
+                Foo: "Bar",
+                Bar: "Baz"
+            }
+        ]
+    };
+
+    yield 1; // All Generators MUST have a yield - this one is here just incase...
+
+    return retJsonObj;
+
 }
 
 function apigwProxyHandler() {
     console.log('apigwProxyHandler');
 }
 
+function snsHandler(event) {
+    console.log('Begin snsHandler');
+
+    console.log('End snsHandler');
+}
+
+function s3Handler() {
+    console.log('s3Handler');
+}
+
+function sesHandler() {
+    console.log('sesHandler');
+}
+
+function dynamoDBHander() {
+    console.log('dynamoDBHander');
+}
+// ***************** End Sub Handler Functions ***********************
+
+// ***************** Begin User Functions ***********************
 function *someSubGen(myparms) {
     console.log("Enter Sub Generator");
     console.log("Passed In Params: " + myparms);
@@ -45,57 +175,6 @@ function *someSubGen(myparms) {
     console.log("Exit Sub Generator");
 }
 
-function *snsHandler(event) {
-    console.log('Begin snsHandler');
-
-    var calledEvent = event[EVENT_TYPE];
-    console.log('Passed In Event: ' + calledEvent);
-
-    var myparams = "Some Passed In Vals";
-
-    // ok, let's setup a series of fake async calls
-    try {
-        var result = yield getAsyncVal(101);
-        console.log( result );
-        var result2 = yield getAsyncVal(102);
-        console.log( result2 );
-        yield *someSubGen(myparams);
-        var result5 = yield getAsyncVal(105);
-        console.log( result5 );
-    }
-    catch (err) {
-        console.error( err );
-    }
-
-    /*
-     // construct an iterator `it` to control the generator
-     var it = genControl();
-     var p = it.next().value; // get the promise
-
-     p.then (
-     function (inVal) {
-     it.next(inVal);
-     },
-     function (err) {
-     it.throw( err );
-     }
-     );
-     */
-    console.log('End snsHandler');
-}
-
-function s3Handler() {
-    console.log('s3Handler');
-}
-
-function sesHandler() {
-    console.log('sesHandler');
-}
-
-function dynamoDBHander() {
-    console.log('dynamoDBHander');
-}
-
 // build a timer function that is wrapped in a promise
 function getAsyncVal(timeToWait) {
     return new Promise(function(resolve, reject) {
@@ -104,49 +183,9 @@ function getAsyncVal(timeToWait) {
         }, timeToWait);
     });
 }
+// ***************** End User Functions ***********************
 
-
-exports.handler = function(event, context, callback) {
-    // we are dealing with an event, so we need to get the data
-    // from the event, and figure out what to do with it
-
-    // we may use events like SNS to notify of a different event source
-    // so we will probably need some special logic that will help us figure that out
-
-    // we want to parse the event - we already have it, so this is synchronous
-    var inEvent = {};
-    inEvent.event = event;
-    inEvent = parseEvent(inEvent);
-    // we need to know the event source, so we should pass this in from the parseEvent
-
-    if (inEvent && inEvent.hasOwnProperty(EVENT_TYPE)) {
-        switch (inEvent[EVENT_TYPE]) {
-            case EVENT_API_GW_PARSED:
-                apigwParsedHandler(inEvent);
-                break;
-            case EVENT_API_GW_PROXY:
-                apigwProxyHandler(inEvent);
-                break;
-            case EVENT_SNS :
-                run(snsHandler, inEvent);
-                break;
-            case EVENT_S3 :
-                s3Handler(inEvent);
-                break;
-            case EVENT_SES :
-                sesHandler(inEvent);
-                break;
-            case EVENT_DYNAMO_DB :
-                dynamoDBHander(inEvent);
-                break;
-            default :
-                console.log("No Event, Or Event Type Not Supported");
-        }
-
-    }
-    console.log("Exiting Handler Function");
-}
-
+// ***************** Begin Utility Functions ***********************
 /*
  Run is a wrapper function that takes a generator as its argument
  and runs through each of the Yeilds (which return promises) and
@@ -342,8 +381,6 @@ function parseEvent(data) {
  return Promise.resolve(data);
  }
 
-
-
  // API Gateway Authorizer
  if(data.event.hasOwnProperty('authorizationToken')) {
  console.log("Unimplemented ApiGatewayAuthorizer Event Type");
@@ -394,99 +431,5 @@ function parseEvent(data) {
  return data;
  */
 
+// ***************** End Utility Functions ***********************
 
-
-/**
- * Handler function to be invoked by AWS Lambda with an event
- *
- * @param {object} event - Incoming AWS Event.
- * @param {object} context - Lambda context object.
- * @param {object} callback - Lambda callback object.
- * @param {object} overrides - Overrides for the default data, including the configuration.
- */
-
-/*
- //Old exports.handler - testing new flow
- exports.handler = function(event, context, callback, overrides) {
-
- // we will need to move the function series of steps to
- // individual calls, and implement some sort of flow control
-
-
- // we want to parse the event - we already have it, so this is synchronous
-
-
- // depending on the type of event, we will have different possible paths of execution
- var parsedEvent = exports.parseEvent(event);
-
-
- // get key to sign request to other services (if necessary)
-
-
-
-
- var steps = overrides && overrides.steps ? overrides.steps :
- [
- exports.parseEvent,
- exports.buildAccountObj,
- exports.createAccountRecord
-
- ];
-
- var data = {
- continueSeries: true,
- event: event,
- callback: callback,
- context: context,
- config: overrides && overrides.config ? overrides.config : defaultConfig,
- log: overrides && overrides.log ? overrides.log : console.log
- };
- Promise.series(steps, data)
- .then(function(data) {
- data.log({level: "info", message: "Process finished successfully."});
- var responseBody = {
- message: "Process finished successfully."
- };
- var response = {
- statusCode: 200,
- headers: {
- "Access-Control-Allow-Origin" : "*", // Required for CORS support to work
- "Access-Control-Allow-Credentials" : true // Required for cookies, authorization headers with HTTPS
- },
- body: JSON.stringify(responseBody)
- };
- //body: JSON.stringify(data)
- // return the results to caller (usually web request through api gateway)
- return data.callback(null, response);
- })
- .catch(function(err) {
- // When we throw an error on a lamdda that is attached to a stream (kenisis or dynamodb)
- // it will cause the queue of messages coming in from the stream to get stopped at that
- // point and our function will get called repeatedly -
- // this is to insure that messages are processed in order - We need to consider this in
- // our design - lambdas that use streams need to handle failure in a different way
- data.log({level: "error", message: "Step returned error: " + err.message,
- error: err, stack: err.stack});
- return data.callback(new Error("Error: Step returned error."));
- });
- };
-
- function setContinueSeries(data, val) {
- if (val) {
- data.continueSeries = true;
- } else {
- data.continueSeries = false;
- }
- return data;
- }
-
- Promise.series = function(promises, initValue) {
- return promises.reduce(function(chain, promise) {
- if (typeof promise !== 'function') {
- return Promise.reject(new Error("Error: Invalid promise item: " +
- promise));
- }
- return chain.then(promise);
- }, Promise.resolve(initValue));
- };
- */
